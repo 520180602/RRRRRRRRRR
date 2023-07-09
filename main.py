@@ -9,7 +9,6 @@ import dns.resolver
 import threading
 import random
 from queue import Queue
-from dotenv import load_dotenv
 from rich.console import Console
 from emoji import emojize
 import warnings
