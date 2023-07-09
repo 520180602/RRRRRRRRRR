@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Gmail Lookup Tool
-# Author: @smtpinjector
+# Author: @smtpinjectoar
 import re
 import os
 import socket
