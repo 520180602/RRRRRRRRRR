@@ -12,49 +12,48 @@ from queue import Queue
 from rich.console import Console
 from emoji import emojize
 import warnings
+import requests
+
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-
-
 console = Console()
+
+
 def log(msg, indent=0):
     indented = " " * indent
-    console.print(f"{indented}{emojize(':inbox_tray:')} [bold orange_red1]Glook[/bold orange_red1] => {msg}")
+    console.print(
+        f"{indented}{emojize(':inbox_tray:')} [bold orange_red1]Glook[/bold orange_red1] => {msg}"
+    )
+
+
 def perr(msg):
     log(f"[bold red]{emojize(':x:')} {msg}[/bold red]")
+
+
 def palr(msg, indent=0):
     log(f"[bold orange1]{emojize(':bell:')} {msg}[/bold orange1]", indent=indent)
+
+
 def psuc(msg):
     log(f"[bold green]{emojize(':white_check_mark:')} {msg}[/bold green]")
 
 
-
-load_dotenv()
-
-MAX_THREADS = 0
-
-def get_threads_count():
-    try:
-        palr("Enter the number of threads you want to run:")
-        threads_count = int(input())
-        if threads_count < 1:
-            perr("Please enter a number greater than 0")
-    except ValueError:
-        threads_count = 10
-        perr("Defaulting to 10 threads")
-    return threads_count
+MAX_THREADS = 10  # Default number of threads
 
 
 def check_email(email_address):
     address_to_verify = email_address.strip().lower()
-    match = re.match('^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,4})$', address_to_verify)
+    match = re.match(
+        "^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,4})$",
+        address_to_verify,
+    )
     if match is None:
-        perr(f'{address_to_verify} => Bad Syntax')
+        perr(f"{address_to_verify} => Bad Syntax")
         return
 
-    domain_name = address_to_verify.split('@')[1]
+    domain_name = address_to_verify.split("@")[1]
     try:
-        records = dns.resolver.query(domain_name, 'MX')
+        records = dns.resolver.query(domain_name, "MX")
         mx_record = str(records[0].exchange)
     except Exception as e:
         perr(f"{address_to_verify} => MX record lookup failed")
@@ -66,15 +65,15 @@ def check_email(email_address):
     try:
         server.connect(mx_record)
         server.helo(host)
-        server.mail('me@domain.com')
+        server.mail("me@domain.com")
         code, message = server.rcpt(address_to_verify)
         server.quit()
         if code == 250:
-            psuc(f"{address_to_verify} => YY")
-            with open('verified_emails.txt', 'a') as f:
+            psuc(f"{address_to_verify} => Valid GMX email")
+            with open("verified_emails.txt", "a") as f:
                 f.write(f"{address_to_verify}\n")
         else:
-            perr(f"{address_to_verify} => NN")
+            perr(f"{address_to_verify} => Invalid GMX email")
     except Exception as e:
         perr(f"Failed to verify {address_to_verify}: {e}")
 
@@ -89,8 +88,14 @@ def worker(email_queue):
 
 
 def main():
-    with open('h.txt', 'r') as f:
-        emails = f.readlines()
+    url = "https://raw.githubusercontent.com/120190233/RRRRRRRRRR/main/h.txt"
+    response = requests.get(url)
+    if response.status_code == 200:
+        emails = response.text.splitlines()
+    else:
+        perr(f"Failed to fetch email addresses from {url}")
+        return
+
     email_queue = Queue()
     for i in range(MAX_THREADS):
         threading.Thread(target=worker, args=(email_queue,)).start()
@@ -100,6 +105,6 @@ def main():
         email_queue.put(None)
     email_queue.join()
 
+
 if __name__ == "__main__":
-    MAX_THREADS = get_threads_count()
     main()
